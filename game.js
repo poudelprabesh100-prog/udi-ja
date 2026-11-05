@@ -18,9 +18,15 @@ for(const b of $('modes').children)b.onclick=()=>{mode=b.dataset.mode;select($('
 [...$('levels').children].forEach((b,i)=>b.onclick=()=>{difficulty=i;select($('levels'),b)});
 palettes.forEach(([name],i)=>{let b=document.createElement('button');b.title=name;b.setAttribute('aria-label',name+' kite');b.innerHTML=kiteSVG(i)+'<small>'+name+' · '+(price[i]||'Free')+'</small>';b.removeAttribute('title');b.innerHTML+='<span class="kite-tip" role="tooltip" id="kite-tip-'+i+'">Speed '+speed[i]+' · Durability '+health[i]+' hits</span>';b.setAttribute('aria-describedby','kite-tip-'+i);$('skins').append(b);b.onclick=()=>{if(!owned.includes(i)){dialog(name+' kite',price[i]+' coins · Wallet '+coins+' coins\nSpeed '+speed[i]+' · Durability '+health[i],coins>=price[i]?[['Buy and equip',()=>{coins-=price[i];owned.push(i);save();b.click()}],['Back',()=>{}]]:[['Back',()=>{}]]);return}skin=i;$('kn').textContent=name+' · '+coins+' coins';select($('skins'),b)}});$('skins').firstElementChild.click();
 function tone(f,d=.13){if(!sound||!audio)return;let o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.08,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+d)}
-const music=new Audio();
-music.loop=true;music.volume=.38;music.preload='auto';music.src=music.canPlayType('audio/webm; codecs=opus')?'tihar-dhun.webm':'Tihar Dhun- Deusi Bhailo.mp3';
-$('sound').onclick=()=>{sound=!sound;if(sound){music.play().catch(()=>{});const Context=window.AudioContext||window.webkitAudioContext;if(Context){audio??=new Context();audio.resume().catch(()=>{})}}else music.pause();$('sound').querySelector('span').textContent='Sound '+(sound?'on':'off');$('sound').setAttribute('aria-pressed',String(sound))};
+const music=new Audio(),webmTrack='tihar-dhun.webm',mp3Track='Tihar Dhun- Deusi Bhailo.mp3',ua=navigator.userAgent;
+// WebKit (every iPhone/iPad browser, desktop Safari) reports WebM/Opus support but often plays nothing, so it gets the MP3.
+const webkitOnly=/iPhone|iPad|iPod/.test(ua)||(/Safari/.test(ua)&&!/Chrome|Chromium|Android|Edg|OPR|Firefox/.test(ua))||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let usingMp3=webkitOnly||music.canPlayType('audio/webm; codecs=opus')!=='probably';
+music.loop=true;music.volume=.38;music.preload='auto';music.src=usingMp3?mp3Track:webmTrack;
+function playMusic(){const p=music.play();if(p)p.catch(err=>{if(err&&err.name==='NotAllowedError')return;fallbackMusic()})}
+function fallbackMusic(){if(usingMp3)return;usingMp3=true;music.src=mp3Track;music.load();if(sound)music.play().catch(()=>{})}
+music.addEventListener('error',fallbackMusic);
+$('sound').onclick=()=>{sound=!sound;if(sound){playMusic();const Context=window.AudioContext||window.webkitAudioContext;if(Context){audio??=new Context();audio.resume().catch(()=>{})}}else music.pause();$('sound').querySelector('span').textContent='Sound '+(sound?'on':'off');$('sound').setAttribute('aria-pressed',String(sound))};
 const canvas=$('arena'),ctx=canvas.getContext('2d'),keys=new Set();let W,H,player,bots=[],particles=[],time,points,cuts,elapsed,prev=0,cool=0,flash=0,jx=0,jy=0,target=null,fire=0,recap='',victory=false;
 function size(){W=canvas.clientWidth;H=canvas.clientHeight;let d=Math.min(devicePixelRatio||1,2);canvas.width=W*d;canvas.height=H*d;ctx.setTransform(d,0,0,d,0,0)}
 const bounty=[100,150,225,325];
@@ -137,3 +143,11 @@ function chooseGround(b){select(grounds,b);$('sky').style.backgroundImage=b.styl
 let preferred='valley';try{preferred=localStorage.tiharGround||preferred}catch{}
 for(const b of grounds.children)b.onclick=()=>chooseGround(b);
 chooseGround([...grounds.children].find(b=>b.dataset.ground===preferred)||grounds.firstElementChild);
+
+// Stop double-tap zoom, pinch zoom and text/image selection from interrupting a flight
+{let lastTap=0;const playing=()=>document.body.classList.contains('playing');
+document.addEventListener('touchend',e=>{const t=Date.now();if(playing()&&t-lastTap<400&&!e.target.closest('#pause,dialog'))e.preventDefault();lastTap=t},{passive:false});
+document.addEventListener('touchmove',e=>{if(playing()&&e.touches.length>1)e.preventDefault()},{passive:false});
+for(const n of ['gesturestart','gesturechange','gestureend'])document.addEventListener(n,e=>e.preventDefault());
+$('sky').addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('selectstart',e=>{if(playing()&&!e.target.closest?.('dialog'))e.preventDefault()});}

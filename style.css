@@ -153,3 +153,10 @@ dialog{max-height:90dvh;overflow:auto}
 .playing #reel{right:12px;bottom:90px;gap:8px}
 .playing #touch{bottom:12px;left:14px;right:12px}
 }
+
+/* No text/image selection, copy bubble or long-press callout over the game */
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+dialog{-webkit-user-select:text;user-select:text}
+img,svg,canvas{-webkit-user-drag:none;user-drag:none}
+/* While flying, the sky takes every touch itself: no double-tap zoom, pinch zoom or scroll */
+.playing #sky{touch-action:none}

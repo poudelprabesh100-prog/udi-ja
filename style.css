@@ -1,4 +1,5 @@
 *{box-sizing:border-box}
+html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:#131525;color:#faf5e8;font:16px "Segoe UI",Arial,sans-serif}
 header,main{max-width:1470px;margin:auto}
 header{height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 4%}
@@ -53,7 +54,7 @@ dialog p{line-height:1.6;white-space:pre-line}
 @media(pointer:coarse){.playing #touch{display:flex;position:absolute;bottom:18px;left:16px;right:16px;justify-content:space-between;align-items:center;pointer-events:none}
 #stick,#cut{pointer-events:auto;touch-action:none;border-radius:50%;background:#20263dbb;border:2px solid #ffffff88;display:grid;place-items:center;width:78px;height:78px}
 #stick i{background:#ffdf92;width:29px;height:29px;border-radius:50%}
-#cut{width:65px;height:65px;background:#943b55;color:white;font-weight:900}
+#cut{width:76px;height:76px;background:#943b55;color:white;font-weight:900;padding:0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 }
 @media(max-width:850px){.options{grid-template-columns:1fr 1fr}
 .options>div:first-child{grid-column:1/-1}
@@ -117,3 +118,17 @@ body{background:radial-gradient(ellipse at 12% 0%,#582c46,transparent 62%),linea
 #cover{top:max(15%,55px)}.playing #sky::before{display:none}
 #setup .title::after{content:"";width:62px;height:42px;background:url(diyo.svg) center/contain no-repeat;flex:none}
 @media(max-width:580px){#sky::before{height:40px;background-size:225px 40px}#setup .title::after{width:48px;height:34px}}
+
+/* Touch layout: every in-game action sits under the right thumb.
+   CUT bottom-right, Dodge beside it, Brace above Dodge, Pay out / Reel in above CUT. */
+@media(pointer:coarse){
+.playing #moves,.playing #reel{top:auto;gap:10px;padding:0;background:none;z-index:3}
+.playing #moves{flex-direction:column-reverse;right:102px;bottom:18px}
+.playing #reel{flex-direction:column;right:16px;bottom:104px}
+#moves button,#reel button{display:grid;place-items:center;text-align:center;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;color:#fff;border:2px solid #ffffff88;font-weight:800;font-size:12px;line-height:1.1;padding:0}
+#moves button{width:62px;height:62px;border-radius:50%}
+#moves #dash{background:#2a5c73e6}
+#moves #guard{background:#3f4f8ae6}
+#reel button{width:76px;height:46px;border-radius:23px;background:#5b3b6ce6}
+#reel button+button{background:#7a4a3ae6}
+}

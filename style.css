@@ -132,3 +132,24 @@ body{background:radial-gradient(ellipse at 12% 0%,#582c46,transparent 62%),linea
 #reel button{width:76px;height:46px;border-radius:23px;background:#5b3b6ce6}
 #reel button+button{background:#7a4a3ae6}
 }
+
+/* Keep the controls from hiding the sky: see-through until pressed */
+dialog{max-height:90dvh;overflow:auto}
+@media(pointer:coarse){
+.playing #stick,.playing #cut,.playing #moves button,.playing #reel button{opacity:.5;transition:opacity .12s}
+.playing #stick:active,.playing #cut:active,.playing #moves button:active,.playing #reel button:active{opacity:.95}
+}
+/* Phone in landscape: use the whole screen for the sky */
+@media(pointer:coarse) and (orientation:landscape) and (max-height:520px){
+.playing header{display:none}
+.playing main{padding:6px 8px}
+.playing #sky{height:calc(100dvh - 12px);min-height:0;border-radius:12px}
+.playing #hud{top:8px}
+#stick{width:84px;height:84px}
+#cut{width:68px;height:68px}
+#moves button{width:54px;height:54px}
+#reel button{width:68px;height:40px}
+.playing #moves{right:90px;bottom:12px;gap:8px}
+.playing #reel{right:12px;bottom:90px;gap:8px}
+.playing #touch{bottom:12px;left:14px;right:12px}
+}

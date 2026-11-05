@@ -34,8 +34,36 @@ function start(){if($('modal').open)$('modal').close();document.body.classList.a
 function lobby(){state='setup';document.body.classList.remove('playing');$('hud').hidden=true;ctx.clearRect(0,0,W,H)}
 function dialog(title,body,buttons){if($('modal').open)$('modal').close();$('mt').textContent=title;$('mb').textContent=body;$('actions').replaceChildren();for(const [s,fn] of buttons){let b=document.createElement('button');b.textContent=s;b.onclick=()=>{$('modal').close();fn()};$('actions').append(b)}$('modal').showModal()}
 function pause(){if(state!=='play')return;state='paused';keys.clear();target=null;jx=jy=0;dialog('Flight paused','Resume when you’re ready.',[['Resume',()=>state='play'],['Flight setup',lobby]])}
-$('pause').onclick=pause;$('launch').onclick=start;
-$('help').onclick=()=>{const resume=state==='play';if(resume)state='paused';dialog('How to fly','Shift dodges in your last steering direction. F braces the line briefly. Both have cooldowns and prevent cutting while active. Hard rivals anticipate movement and can strike from farther away.\n\nReel in with Q for fast turns. Pay out with E for greater distance and cutting reach. Use the mouse wheel or the − / + reel buttons too.\n\nSteer with WASD or the arrow keys. You can also move the mouse over the sky to guide your kite. On touchscreens, drag the joystick on the left and use the buttons on the right: CUT, Dodge, Brace, and Pay out / Reel in (hold to keep reeling).\n\nFly within the gold ring’s reach of a rival’s trailing line. Press Space, click, or tap CUT to slice it. A red ring marks a rival preparing to cut your string. Dodge or brace before it strikes. Your kite’s durability determines how many hits it can take.\n\nOutlast ten rivals in Last Kite Flying, or survive 90 seconds in Rush Mode. Each hit removes one durability. Aim for the highlighted string. Finishing Marigold, Rose, Peacock or Orchid earns 100, 150, 225 or 325 points respectively.',[['Got it',()=>{if(resume)state='play'}]])};
+$('pause').onclick=pause;
+let hintOpen=false;const landscape=matchMedia('(orientation:landscape)');
+function launch(){let seen=false;try{seen=sessionStorage.tiharLandscapeHint==='1'}catch{}
+ if(matchMedia('(pointer:coarse)').matches&&!landscape.matches&&!seen){try{sessionStorage.tiharLandscapeHint='1'}catch{}hintOpen=true;
+  dialog('Rotate for a better view','Turn your phone sideways to fly in landscape. You get a wider sky and the controls cover less of it. Rotate now and the game starts on its own.',[['Play in portrait',start],['Back',()=>{}]]);return}
+ start()}
+$('modal').addEventListener('close',()=>hintOpen=false);
+landscape.addEventListener('change',e=>{if(e.matches&&hintOpen)start()});
+$('launch').onclick=launch;
+const goal='Goal: outlast ten rivals in Last Kite Flying, or survive 90 seconds in Rush Mode. Each hit removes one durability, and your kite’s durability decides how many hits it can take. Finishing a Marigold, Rose, Peacock or Orchid rival earns 100, 150, 225 or 325 points.';
+function helpText(){return (matchMedia('(pointer:coarse)').matches?[
+'TOUCH CONTROLS',
+'Steer: drag the joystick on the left.',
+'Cut: tap CUT when the gold ring touches a rival’s string. The highlighted string is your target.',
+'Dodge: tap to dash in your last steering direction.',
+'Brace: tap to harden your line for a moment. Dodge and Brace have cooldowns and stop you cutting while active.',
+'Reel in: hold to tighten the line for faster turns.',
+'Pay out: hold to let line out for more distance and cutting reach.',
+'A red ring around a rival means it is about to cut your string. Dodge or brace before it strikes.',
+'The buttons are see-through until you press them.'+(landscape.matches?'':' Tip: turn your phone sideways for a wider view.')
+]:[
+'KEYBOARD AND MOUSE',
+'Steer: WASD or arrow keys, or move the mouse over the sky.',
+'Cut: Space or click when the gold ring touches a rival’s string. The highlighted string is your target.',
+'Dodge: Shift dashes in your last steering direction.',
+'Brace: F hardens your line for a moment. Dodge and Brace have cooldowns and stop you cutting while active.',
+'Reel in: hold Q for faster turns. Pay out: hold E, or use the mouse wheel, for more distance and cutting reach. The Q / E buttons on screen work too.',
+'A red ring around a rival means it is about to cut your string. Dodge or brace before it strikes. Hard rivals anticipate your movement and strike from farther away.'
+]).join(String.fromCharCode(10,10))+String.fromCharCode(10,10)+goal}
+$('help').onclick=()=>{const resume=state==='play';if(resume)state='paused';dialog('How to fly',helpText(),[['Got it',()=>{if(resume)state='play'}]])};
 $('modal').addEventListener('cancel',e=>{e.preventDefault();$('actions').firstElementChild.click()});
 function burst(x,y,color,count=20){for(let i=0;i<count;i++){let a=Math.random()*6.28,s=30+Math.random()*150;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.6+Math.random()*.65,c:color})}}
 function finish(win){state='result';victory=win;fire=0;earned=cuts*12+Math.floor(elapsed/10)+(win?35+10*difficulty+player.hp*3:0);coins+=earned;save();$("kn").textContent=palettes[skin][0]+' · '+coins+' coins';recap='+'+earned+' coins · Wallet '+coins+' coins\n'+cuts+' kite'+(cuts===1?'':'s')+' cut · '+points+' points';if(win){for(let i=0;i<5;i++)burst(Math.random()*W,Math.random()*H*.7,palettes[i%4][1],40);tone(880,.4)}setTimeout(()=>{if(state==='result')dialog(win?'Congratulations, kite champion!':'Your line was cut',recap,[['Fly again',start],['Flight setup',lobby]])},win?1850:450)}

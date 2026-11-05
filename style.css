@@ -1,0 +1,119 @@
+*{box-sizing:border-box}
+body{margin:0;background:#131525;color:#faf5e8;font:16px "Segoe UI",Arial,sans-serif}
+header,main{max-width:1470px;margin:auto}
+header{height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 4%}
+.brand{font:900 20px Georgia;letter-spacing:-.8px}
+.brand b{color:#ffd36c}
+nav{display:flex;gap:10px}
+button{font:600 14px inherit;font-family:inherit;color:inherit;background:#26283e;border:1px solid #45465c;border-radius:9px;cursor:pointer;padding:10px 14px}
+button:hover{filter:brightness(1.19)}
+main{padding:0 3.8% 30px}
+#sky{isolation:isolate;position:relative;overflow:hidden;height:clamp(320px,44vh,540px);background:#5bb9d0 url(valley.svg) center 58%/cover;border-radius:18px;border:1px solid #55566c}
+.shade{position:absolute;inset:0;background:linear-gradient(90deg,#0b243dba,transparent 60%),linear-gradient(0deg,#1229257a,transparent 24%)}
+#cover{position:absolute;top:12%;left:5%}
+#cover small,h3,#location{font-weight:800;letter-spacing:2px;font-size:10px}
+#cover small{color:#ffdd8b}
+#cover i{display:inline-block;width:24px;height:2px;background:currentColor;vertical-align:middle;margin-right:7px}
+h1{font:1000 clamp(54px,6.4vw,102px)/.88 Georgia,serif;letter-spacing:-.063em;margin:16px 0;color:#ffe59d;text-shadow:3px 4px #222437}
+h1 em{font-style:normal;color:#fff8df}
+#cover p{font:italic 19px Georgia;margin:12px 0}
+#location{position:absolute;bottom:13px;right:17px;background:#131e29bd;border-radius:5px;padding:6px 9px;color:#fff2cc;font-size:9px}
+#posterKites{position:absolute;inset:0;pointer-events:none}
+#posterKites svg{position:absolute;filter:drop-shadow(1px 5px 3px #16353735)}
+#setup{padding:20px 25px 22px;margin-top:18px;background:#202236;border:1px solid #393b51;border-radius:16px}
+.title{display:flex;align-items:center;gap:12px}
+.title span{color:#ffc564}
+.title hr{flex:1;border:0;border-top:1px solid #3c3e51}
+h2{font:bold 27px Georgia;margin:0}
+.options{display:grid;grid-template-columns:1.6fr .9fr 1fr;gap:24px;margin:15px 0 20px}
+h3{color:#bfc0ce;margin:0 0 10px;font-size:10px}
+h3 span{float:right;letter-spacing:0;color:#f8cb7c}
+#modes,#levels,#skins{display:flex;gap:7px}
+#modes button{flex:1;text-align:left;padding:10px}
+button strong{font-size:14px}
+button small{display:block;color:#c0bdc9;font-size:11px;margin-top:4px}
+.selected{border-color:#ffc361;background:#443844;color:#ffdb88}
+#levels button{flex:1;padding:12px 5px}
+#skins button{flex:1;height:48px;padding:2px}
+#skins svg{height:44px;width:40px}
+#launch{display:block;margin:auto;background:#ffc35f;color:#292334;border:1px solid #ffe6a7;font-size:17px;font-weight:800;padding:12px 40px;box-shadow:0 3px #a26b34}
+#arena{display:none;width:100%;height:100%;touch-action:none}
+.playing #sky{height:clamp(460px,78dvh,850px)}
+.playing #arena{display:block;position:absolute;inset:0}
+.playing #cover,.playing #posterKites,.playing #setup,.playing #location,.playing .shade{display:none}
+#hud{position:absolute;top:12px;left:12px;right:12px;justify-content:space-between;align-items:center}
+#hud:not([hidden]){display:flex}
+#stats{background:#171a30de;padding:9px;border-radius:8px;font-size:13px}
+#touch{display:none}
+dialog{background:#232538;color:#fff4de;border:1px solid #7b6c64;border-radius:16px;padding:28px;max-width:min(420px,90vw)}
+dialog::backdrop{background:#101324a6}
+dialog p{line-height:1.6;white-space:pre-line}
+#actions{display:flex;gap:10px}
+#actions button:first-child{background:#ffce78;color:#242133}
+@media(pointer:coarse){.playing #touch{display:flex;position:absolute;bottom:18px;left:16px;right:16px;justify-content:space-between;align-items:center;pointer-events:none}
+#stick,#cut{pointer-events:auto;touch-action:none;border-radius:50%;background:#20263dbb;border:2px solid #ffffff88;display:grid;place-items:center;width:78px;height:78px}
+#stick i{background:#ffdf92;width:29px;height:29px;border-radius:50%}
+#cut{width:65px;height:65px;background:#943b55;color:white;font-weight:900}
+}
+@media(max-width:850px){.options{grid-template-columns:1fr 1fr}
+.options>div:first-child{grid-column:1/-1}
+}
+@media(max-width:580px){header{height:62px}
+.brand{font-size:15px}
+nav{gap:4px}
+nav button{font-size:11px;padding:7px}
+#sky{height:310px}
+#cover{top:18%}
+h1{font-size:52px}
+#setup{padding:15px}
+.options{gap:14px}
+#skins{gap:3px}
+#skins button{min-width:0}
+#skins svg{width:100%}
+h3{letter-spacing:1px}
+#kn{display:none}
+#launch{width:100%}
+.playing #sky{height:calc(100dvh - 80px);min-height:245px}
+}
+
+#reel{display:none}
+.playing #reel{display:flex;position:absolute;right:12px;top:60px;align-items:center;gap:5px;background:#23253bde;padding:4px 6px;border-radius:9px;color:#ffe1a1;font-size:12px}
+#skins button{height:auto}
+#skins small{font-size:9px;margin:0 0 4px}
+.options{grid-template-columns:1.35fr .8fr 1.2fr}
+@media(max-width:850px){.options{grid-template-columns:1fr 1fr}
+}
+
+
+#moves{display:none}
+.playing #moves{position:absolute;right:12px;top:110px;display:flex;gap:5px}
+#moves button{font-size:12px;padding:8px;background:#25283de8}
+
+#grounds{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:18px}
+#grounds button{overflow:hidden;padding:0 0 6px;font-size:12px}
+#grounds i{display:block;height:50px;background:var(--scene) center 63%/cover;margin-bottom:5px}
+@media(max-width:580px){#grounds{grid-template-columns:repeat(3,1fr)}
+#grounds button{font-size:11px}
+}
+
+#skins button{position:relative}
+#skins .kite-tip{display:none;position:absolute;z-index:4;right:0;bottom:calc(100% + 6px);width:max-content;padding:9px 12px;border:1px solid #ffd381;border-radius:8px;background:#191b2e;color:#fff2d6;box-shadow:0 4px 14px #0005;font-size:13px;pointer-events:none}
+#skins button:hover .kite-tip,#skins button:focus-visible .kite-tip{display:block}
+
+.club-mark{vertical-align:middle;margin-right:5px}
+.brand{white-space:nowrap}
+#sound{display:inline-flex;align-items:center;gap:6px}
+#sound svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#sound .waves,#sound[aria-pressed=true] .mute{display:none}
+#sound[aria-pressed=true] .waves{display:inline}
+@media(max-width:580px){.club-mark{width:27px;height:30px}
+}
+
+@font-face{font-family:'Yatra One';src:url('YatraOne-Regular.ttf') format('truetype');font-weight:400;font-display:swap}h1,h2,.brand,.brand b{font-family:'Yatra One',Georgia,serif;font-weight:400}h1{letter-spacing:-.035em;line-height:.99}.brand{letter-spacing:0}
+
+body{background:radial-gradient(ellipse at 12% 0%,#582c46,transparent 62%),linear-gradient(145deg,#381d35,#281624 85%);min-height:100vh}
+#setup,dialog{background:#43293b;border-color:#705044}button{background:#503449;border-color:#795965}button.selected{background:#623951;border-color:#f4bc67}.title hr{border-color:#765141}h3{color:#e1c7bb}#sky{border-color:#aa805c}
+#sky::before{content:"";position:absolute;z-index:2;pointer-events:none;inset:0 0 auto;height:60px;background:url(festival-garland.svg) top center/340px 60px repeat-x}
+#cover{top:max(15%,55px)}.playing #sky::before{display:none}
+#setup .title::after{content:"";width:62px;height:42px;background:url(diyo.svg) center/contain no-repeat;flex:none}
+@media(max-width:580px){#sky::before{height:40px;background-size:225px 40px}#setup .title::after{width:48px;height:34px}}

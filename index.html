@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Udi Ja!</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+<div class="brand">
+<img class="club-mark" src="club-mark.svg" width="39" height="39" alt=""> Udi <b>Ja!</b>
+</div>
+<nav>
+<button id="sound" aria-pressed="false">
+<svg aria-hidden="true" viewBox="0 0 24 24">
+<path d="M3 9h4l5-4v14l-5-4H3z"/>
+<path class="mute" d="m16 9 5 6m0-6-5 6"/>
+<path class="waves" d="M16 8q4 4 0 8m3-11q7 7 0 14"/>
+</svg>
+<span>Sound off</span>
+</button>
+<button id="help">How to play</button>
+</nav>
+</header>
+<main>
+<section id="sky">
+<div class="shade">
+</div>
+<div id="cover">
+<small>
+<i>
+</i> FESTIVAL OF LIGHTS</small>
+<h1>Udi Ja!</h1><p>Tihar Kite Club</p>
+</div>
+<div id="posterKites">
+</div>
+<div id="location">KATHMANDU VALLEY, NEPAL</div>
+<canvas id="arena">
+</canvas>
+<div id="hud" hidden>
+<b id="stats">
+</b>
+<button id="pause">Pause</button>
+</div>
+<div id="reel">
+</div>
+<div id="moves">
+<button id="dash">Dodge · Shift</button>
+<button id="guard">Brace F</button>
+</div>
+<div id="touch">
+<div id="stick">
+<i>
+</i>
+</div>
+<button id="cut">CUT</button>
+</div>
+</section>
+<section id="setup">
+<div class="title">
+<h2>Flight setup</h2>
+<hr>
+</div>
+<div class="options">
+<div>
+<h3>GAME MODE</h3>
+<div id="modes">
+<button data-mode="survival" class="selected">
+<strong>Last Kite Flying</strong>
+<small>Be the last kite in the sky</small>
+</button>
+<button data-mode="rush">
+<strong>Rush Mode</strong>
+<small>90-second score chase</small>
+</button>
+</div>
+</div>
+<div>
+<h3>DIFFICULTY</h3>
+<div id="levels">
+<button>Easy</button>
+<button class="selected">Normal</button>
+<button>Hard</button>
+</div>
+</div>
+<div>
+<h3>KITE SHOP <span id="kn">
+</span>
+</h3>
+<div id="skins">
+</div>
+</div>
+</div>
+<h3 id="sceneryTitle">FLYING GROUNDS</h3>
+<div id="grounds" role="group" aria-labelledby="sceneryTitle">
+<button data-ground="valley" style="--scene:url(valley.svg)">
+<i>
+</i>Kathmandu Valley</button>
+<button data-ground="night" style="--scene:url(night.svg)">
+<i>
+</i>Tihar Rooftops</button>
+<button data-ground="lake" style="--scene:url(lake.svg)">
+<i>
+</i>Lakeside Diyas</button>
+<button data-ground="fields" style="--scene:url(fields.svg)">
+<i>
+</i>Marigold Terraces</button>
+<button data-ground="square" style="--scene:url(square.svg)">
+<i>
+</i>Festival Square</button>
+</div>
+<button id="launch">Launch kite</button>
+</section>
+</main>
+<dialog id="modal">
+<h2 id="mt">
+</h2>
+<p id="mb">
+</p>
+<div id="actions">
+</div>
+</dialog>
+<script src="game.js">
+</script>
+</body>
+</html>
+

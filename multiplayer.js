@@ -1,4 +1,4 @@
-// Multiplayer: lobbies of up to 5 friends, relayed through the Cloudflare Durable Object in /server.
+// Multiplayer: lobbies of up to 3 friends, relayed through the Cloudflare Durable Object in /server.
 // Each player flies their own kite and reports where it is. A cut is sent to the victim, whose own
 // game decides whether it lands (dodge / brace protect) and reports the hit back to the room.
 (() => {
@@ -176,8 +176,8 @@
     el('startMatch').hidden = !isHost();
     el('startMatch').disabled = n < 2;
     el('lobbyHint').textContent = isHost()
-      ? (n < 2 ? 'Share the code with friends. You need at least 2 players to start.' : `${n} players ready. Pick a flying ground above, then start.`)
-      : 'Waiting for the host to start. You can still pick your kite from the shop.';
+      ? (n < 2 ? 'Share the code with friends. You need at least 2 players to start (3 max).' : `${n} of 3 players ready. Pick a flying ground above, then start.`)
+      : `Waiting for the host to start (${n} of 3 players). You can still pick your kite from the shop.`;
     document.body.classList.toggle('lobbyGuest', inRoom && !isHost());
   }
 

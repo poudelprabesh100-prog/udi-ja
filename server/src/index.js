@@ -1,8 +1,8 @@
-// Udi Ja! lobby server: one Durable Object per lobby code, relaying a match of up to 5 kite players.
+// Udi Ja! lobby server: one Durable Object per lobby code, relaying a match of up to 3 kite players.
 // Each client flies its own kite; the room only tracks who is in, durability, eliminations and the winner.
 import { DurableObject } from 'cloudflare:workers';
 
-const MAX_PLAYERS = 5;
+const MAX_PLAYERS = 3;
 const HEALTH = [3, 4, 4, 5];
 const GROUNDS = ['valley', 'night', 'lake', 'fields', 'square'];
 const IDLE_LOBBY_MS = 15 * 60 * 1000;
@@ -49,7 +49,7 @@ export class Room extends DurableObject {
     if (this.players.size === 0 && !create) refuse('notfound', 'Lobby not found. Check the code and try again.');
     else if (this.players.size > 0 && create) refuse('taken', 'That code is already in use.');
     else if (this.phase === 'play') refuse('started', 'That match has already started. Try again once it ends.');
-    else if (this.players.size >= MAX_PLAYERS) refuse('full', 'This lobby is full (5 players).');
+    else if (this.players.size >= MAX_PLAYERS) refuse('full', 'This lobby is full (3 players max).');
     else this.join(server, url);
 
     return new Response(null, { status: 101, webSocket: client });

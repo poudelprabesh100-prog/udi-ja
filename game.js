@@ -72,7 +72,7 @@ function helpText(){return (matchMedia('(pointer:coarse)').matches?[
 'Brace: F hardens your line for a moment. Dodge and Brace have cooldowns and stop you cutting while active.',
 'Reel in: hold Q for faster turns. Pay out: hold E, or use the mouse wheel, for more distance and cutting reach. The Q / E buttons on screen work too.',
 'A red ring around a rival means it is about to cut your string. Dodge or brace before it strikes. Hard rivals anticipate your movement and strike from farther away.'
-]).join(String.fromCharCode(10,10))+String.fromCharCode(10,10)+goal+String.fromCharCode(10,10)+'PLAY WITH FRIENDS: create a lobby, share the 5-letter code or invite link, and up to five players fly together. The last kite flying wins. Cutting a friend’s string takes one durability from them unless they dodge or brace in time.'}
+]).join(String.fromCharCode(10,10))+String.fromCharCode(10,10)+goal+String.fromCharCode(10,10)+'PLAY WITH FRIENDS: create a lobby, share the 5-letter code or invite link, and up to three players fly together. The last kite flying wins. Cutting a friend’s string takes one durability from them unless they dodge or brace in time.'}
 $('help').onclick=()=>{const resume=state==='play'&&mode!=='versus';if(resume)state='paused';dialog('How to fly',helpText(),[['Got it',()=>{if(resume)state='play'}]])};
 $('modal').addEventListener('cancel',e=>{e.preventDefault();$('actions').firstElementChild.click()});
 function burst(x,y,color,count=20){for(let i=0;i<count;i++){let a=Math.random()*6.28,s=30+Math.random()*150;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:.6+Math.random()*.65,c:color})}}

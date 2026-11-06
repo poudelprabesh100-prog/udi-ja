@@ -11,7 +11,26 @@
 
   let ws = null, myId = null, hostId = null, code = '', players = [], phase = 'lobby';
   let inRoom = false, over = false, soloMode = 'survival', latency = 0, pingTimer = 0;
-  let sentPos = { x: -1, y: -1, l: -1 }, posAt = 0, createTries = 0, endTimer = 0;
+  let sentPos = { x: -1, y: -1, l: -1 }, posAt = 0, settled = true, createTries = 0, endTimer = 0;
+  const MIN_DELAY = 90, MAX_DELAY = 280, MAX_EXTRAPOLATE = 120;
+  const LEAD_SHARE = .6, MAX_LEAD_S = .2, MAX_LEAD_PX = 45; // how far ahead of the delayed position other kites are drawn
+
+  // Position of a remote kite at time t, from its received samples (oldest first).
+  function sampleAt(buf, t) {
+    const first = buf[0], last = buf[buf.length - 1];
+    if (buf.length === 1 || t <= first.t) return first;
+    if (t >= last.t) {
+      // ran out of data: keep gliding along the last velocity for a moment, then hold
+      const prev = buf[buf.length - 2], span = last.t - prev.t;
+      if (span < 5 || span > 600) return last;
+      const k = Math.min(t - last.t, MAX_EXTRAPOLATE) / span;
+      return { x: last.x + (last.x - prev.x) * k, y: last.y + (last.y - prev.y) * k, l: last.l };
+    }
+    let i = buf.length - 1;
+    while (i > 1 && buf[i - 1].t > t) i--;
+    const a = buf[i - 1], b = buf[i], f = (t - a.t) / (b.t - a.t || 1);
+    return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, l: a.l + (b.l - a.l) * f };
+  }
 
   const send = (o) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
   const note = (text, bad) => { const n = el('mpNote'); n.textContent = text || ''; n.classList.toggle('bad', !!bad); };
@@ -93,7 +112,17 @@
       case 'start': beginMatch(m); break;
       case 'pos': {
         const p = peers.find((q) => q.id === m.id);
-        if (p) { p.nx = m.x; p.ny = m.y; p.line = m.l; }
+        if (p) {
+          const now = performance.now();
+          // learn how bumpy this player's connection is from the gaps between their updates
+          if (p.lastAt) {
+            const gap = now - p.lastAt;
+            if (gap < 300) { p.gap += (gap - p.gap) * .1; p.dev += (Math.abs(gap - p.gap) - p.dev) * .1; }
+          }
+          p.lastAt = now;
+          p.buf.push({ t: now, x: m.x, y: m.y, l: m.l });
+          if (p.buf.length > 16) p.buf.shift();
+        }
         break;
       }
       case 'cut': onCut(m.from); break;
@@ -186,7 +215,7 @@
       if (p.id === myId) return;
       const nx = (i + 1) / (total + 1);
       peers.push({ id: p.id, name: p.name, n: p.skin, hp: p.hp, remote: true, anchor: .5, spool: 50, line: 50,
-        nx, ny: .72, x: W * nx, y: H * .72, phase: Math.random() * 6.28 });
+        buf: [{ t: performance.now(), x: nx, y: .72, l: 50 }], gap: 70, dev: 15, lastAt: 0, delay: 140, vx: 0, vy: 0, x: W * nx, y: H * .72, phase: Math.random() * 6.28 });
     });
     el('pause').textContent = 'Menu';
     sentPos = { x: -1, y: -1, l: -1 };
@@ -295,26 +324,54 @@
       dialog('Leave the match?', 'The match keeps going without you, and your kite will be counted out.',
         [['Keep flying', () => {}], ['Leave match', () => leave()]]);
     },
-    // outgoing position, ~11 times a second while moving and every 0.4s otherwise
+    // Outgoing position: ~15 times a second while moving, one last update once the kite stops, and a
+    // slow heartbeat so the room knows we're still here.
     tick() {
       if (!inRoom || !player || state !== 'play') return;
       const now = performance.now();
       const x = player.x / W, y = player.y / H;
-      const moved = Math.abs(x - sentPos.x) > .003 || Math.abs(y - sentPos.y) > .003 || Math.abs(line - sentPos.l) > 1;
-      if ((moved && now - posAt > 90) || now - posAt > 400) {
+      const moved = Math.abs(x - sentPos.x) > .002 || Math.abs(y - sentPos.y) > .002 || Math.abs(line - sentPos.l) > .5;
+      const due = moved ? now - posAt > 66 : (!settled && now - posAt > 100) || now - posAt > 400;
+      if (due) {
         posAt = now;
+        settled = !moved;
         sentPos = { x, y, l: line };
         send({ t: 'pos', x: +x.toFixed(4), y: +y.toFixed(4), l: Math.round(line) });
       }
     },
-    // smooth other players' kites toward their latest reported spot (runs every frame, also while spectating)
+    // Other players' kites are drawn slightly in the past, interpolating between the positions we received,
+    // so they glide instead of jumping. Then they are nudged ahead along their direction of travel to
+    // make up for the network delay (runs every frame, also while spectating).
     frame(dt) {
       if (mode !== 'versus') return;
-      const k = Math.min(1, dt * 10);
+      const now = performance.now();
       for (const p of peers) {
-        p.x += (p.nx * W - p.x) * k;
-        p.y += (p.ny * H - p.y) * k;
-        p.spool += (p.line - p.spool) * k;
+        // stay just far enough behind to cover this player's jitter; ease changes so motion never warps
+        const want = Math.min(MAX_DELAY, Math.max(MIN_DELAY, p.gap + 3 * p.dev));
+        p.delay += (want - p.delay) * Math.min(1, dt * 1.5);
+        const s = sampleAt(p.buf, now - p.delay);
+
+        // current velocity (px/s) from the newest updates; zero if they've gone quiet (kite is at rest)
+        const n = p.buf.length, last = p.buf[n - 1];
+        let vx = 0, vy = 0;
+        if (n > 1 && now - last.t < 250) {
+          let j = n - 2;
+          while (j > 0 && last.t - p.buf[j].t < 90) j--;
+          const span = (last.t - p.buf[j].t) / 1000;
+          if (span > .03) { vx = (last.x - p.buf[j].x) * W / span; vy = (last.y - p.buf[j].y) * H / span; }
+        }
+        const kv = Math.min(1, dt * 6);
+        p.vx += (vx - p.vx) * kv;
+        p.vy += (vy - p.vy) * kv;
+
+        const lead = Math.min(MAX_LEAD_S, (latency + p.delay) / 1000 * LEAD_SHARE);
+        const lx = Math.max(-MAX_LEAD_PX, Math.min(MAX_LEAD_PX, p.vx * lead));
+        const ly = Math.max(-MAX_LEAD_PX, Math.min(MAX_LEAD_PX, p.vy * lead));
+        const tx = s.x * W + lx, ty = s.y * H + ly, kp = Math.min(1, dt * 22);
+        p.x += (tx - p.x) * kp;
+        p.y += (ty - p.y) * kp;
+        p.spool = s.l;
+        p.line = s.l;
       }
       if (state === 'result') {
         $('stats').textContent = (over ? 'Match over' : 'Spectating') + ' · ' + aliveCount() + ' flying' + (latency ? ' · ' + latency + 'ms' : '');

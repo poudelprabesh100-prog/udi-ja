@@ -14,6 +14,8 @@ export default {
     if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
     const code = (url.searchParams.get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
     if (code.length < 4) return new Response('Bad lobby code', { status: 400 });
+    // No location hint: Cloudflare places the lobby near the first player, which measured fastest and steadiest
+    // (a fixed 'apac' hint was sometimes much slower).
     return env.ROOMS.get(env.ROOMS.idFromName(code)).fetch(request);
   },
 };

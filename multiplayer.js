@@ -48,15 +48,30 @@
   nameInput.addEventListener('change', () => { const n = cleanName(); nameInput.value = n; send({ t: 'name', name: n }); });
 
   // ---- connection ------------------------------------------------------------------------
-  function connect(roomCode, create) {
+  // A private token identifies this player to the room. Phones close the connection as soon as the browser goes
+  // to the background (to paste a code into a chat, say); the token lets us walk back into the same seat.
+  const memoryToken = Array.from({ length: 16 }, () => ALPHABET[Math.floor(Math.random() * ALPHABET.length)]).join('');
+  function token() {
+    try {
+      if (!sessionStorage.tiharToken) sessionStorage.tiharToken = memoryToken;
+      return sessionStorage.tiharToken;
+    } catch { return memoryToken; }
+  }
+  const savedRoom = () => { try { return sessionStorage.tiharRoom || ''; } catch { return ''; } };
+  const rememberRoom = (c) => { try { if (c) sessionStorage.tiharRoom = c; else sessionStorage.removeItem('tiharRoom'); } catch {} };
+
+  let welcomed = false, lastPongAt = 0, retryTimer = 0, retries = 0, netText = '';
+
+  // rejoin = silently re-establishing a lost connection (no "Connecting…" flicker, lobby stays on screen)
+  function connect(roomCode, create, rejoin) {
     if (ws) { const old = ws; ws = null; old.close(); }
     code = roomCode;
-    note('Connecting…');
-    setBusy(true);
+    welcomed = false;
+    if (!rejoin) { note('Connecting…'); setBusy(true); }
     let opened = false;
-    const url = `${SERVER}?room=${roomCode}&create=${create ? 1 : 0}&name=${encodeURIComponent(cleanName())}&skin=${skin}`;
+    const url = `${SERVER}?room=${roomCode}&create=${create ? 1 : 0}&name=${encodeURIComponent(cleanName())}&skin=${skin}&token=${token()}`;
     let sock;
-    try { sock = new WebSocket(url); } catch { note('Couldn’t reach the lobby server.', true); setBusy(false); return; }
+    try { sock = new WebSocket(url); } catch { if (!rejoin) { note('Couldn’t reach the lobby server.', true); setBusy(false); } return; }
     ws = sock;
     // Don't sit on "Connecting…" forever if the server is unreachable.
     const giveUp = setTimeout(() => { if (!opened && ws === sock) sock.close(); }, 8000);
@@ -66,10 +81,59 @@
       if (ws !== sock) return;
       ws = null;
       clearInterval(pingTimer);
+      if (inRoom) { if (!rejoin) lostConnection(); return; } // a failed rejoin attempt is retried by the timer
       setBusy(false);
-      if (inRoom) dropped();
-      else if (!el('mpNote').classList.contains('bad')) note(opened ? '' : 'Couldn’t reach the lobby server. Check your connection and try again.', !opened);
+      if (!el('mpNote').classList.contains('bad')) note(opened ? '' : 'Couldn’t reach the lobby server. Check your connection and try again.', !opened);
     };
+  }
+
+  // ---- staying connected -----------------------------------------------------------------
+  function setNet(text) {
+    const wasText = netText;
+    netText = text || '';
+    const badge = el('netStatus');
+    badge.textContent = netText;
+    badge.hidden = !netText || state === 'setup';
+    if (netText && state === 'setup') note(netText);
+    else if (!netText && wasText && el('mpNote').textContent === wasText) note('');
+  }
+
+  function lostConnection() {
+    if (!inRoom) return;
+    setNet('Connection lost. Reconnecting…');
+    retries = 0;
+    tryReconnect();
+  }
+
+  function tryReconnect() {
+    clearTimeout(retryTimer);
+    if (!inRoom) return;
+    if (retries >= 15) { giveUpRoom('Couldn’t get back into the lobby. Check your connection and join again with the same code.'); return; }
+    if (document.hidden) { retryTimer = setTimeout(tryReconnect, 1000); return; } // wait until the player is back
+    retries++;
+    connect(code, false, true);
+    retryTimer = setTimeout(() => { if (inRoom && !welcomed) tryReconnect(); }, 3500);
+  }
+
+  // The connection can look open but be dead after the phone slept: check with a ping when the page comes back.
+  function checkAlive() {
+    if (!inRoom) return;
+    if (!ws || ws.readyState > 1) { retries = 0; lostConnection(); return; }
+    const asked = Date.now();
+    send({ t: 'ping', ts: asked });
+    setTimeout(() => { if (inRoom && ws && lastPongAt < asked) { const old = ws; ws = null; old.close(); lostConnection(); } }, 2500);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkAlive(); });
+  window.addEventListener('online', checkAlive);
+  window.addEventListener('pageshow', (e) => { if (e.persisted) checkAlive(); });
+
+  function giveUpRoom(msg) {
+    clearTimeout(retryTimer);
+    clearInterval(pingTimer);
+    if (ws) { const old = ws; ws = null; old.close(); }
+    rememberRoom('');
+    setNet('');
+    dropped(msg);
   }
 
   function createLobby() {
@@ -90,17 +154,34 @@
   function handle(m) {
     switch (m.t) {
       case 'welcome':
-        myId = m.id; hostId = m.host; inRoom = true; over = false;
+        myId = m.id; hostId = m.host; inRoom = true; welcomed = true;
+        if (!m.rejoined) over = false;
         if (mode !== 'versus') soloMode = mode;
+        clearTimeout(retryTimer);
+        retries = 0;
+        setNet('');
         note('');
         setBusy(false);
+        rememberRoom(code);
         history.replaceState(null, '', '?room=' + code);
+        lastPongAt = Date.now();
         clearInterval(pingTimer);
-        pingTimer = setInterval(() => send({ t: 'ping', ts: Date.now() }), 4000);
+        pingTimer = setInterval(() => {
+          send({ t: 'ping', ts: Date.now() });
+          // no answer for a long while while the page is in view: the connection is dead, so rebuild it
+          if (!document.hidden && Date.now() - lastPongAt > 12000 && ws) { const old = ws; ws = null; old.close(); lostConnection(); }
+        }, 4000);
         send({ t: 'ping', ts: Date.now() });
         break;
+      case 'resume': resumeMatch(m); break;
       case 'error':
         if (m.code === 'taken' && createTries++ < 4) { createLobbyRetry(); return; }
+        if (inRoom) {
+          giveUpRoom(m.code === 'notfound' ? 'The lobby has closed, so we couldn’t get you back in.'
+            : m.code === 'started' ? 'You were away too long and the match carried on without you.' : m.msg);
+          return;
+        }
+        if (m.code === 'notfound') rememberRoom('');
         note(m.msg, true);
         setBusy(false);
         break;
@@ -134,7 +215,7 @@
       }
       case 'dead': onDead(m); break;
       case 'end': onEnd(m); break;
-      case 'pong': latency = Math.max(0, Date.now() - m.ts); break;
+      case 'pong': latency = Math.max(0, Date.now() - m.ts); lastPongAt = Date.now(); break;
     }
   }
 
@@ -167,16 +248,19 @@
       name.textContent = p.name + (p.id === myId ? ' (you)' : '');
       li.append(dot, name);
       if (p.id === hostId) { const tag = document.createElement('em'); tag.textContent = 'host'; li.append(tag); }
+      if (p.away) { const tag = document.createElement('em'); tag.className = 'away'; tag.textContent = 'away'; li.append(tag); }
       const kite = document.createElement('small');
       kite.textContent = palettes[p.skin][0];
       li.append(kite);
       list.append(li);
     }
-    const n = players.length;
+    const n = players.length, here = players.filter((p) => !p.away).length;
     el('startMatch').hidden = !isHost();
-    el('startMatch').disabled = n < 2;
+    el('startMatch').disabled = here < 2;
     el('lobbyHint').textContent = isHost()
-      ? (n < 2 ? 'Share the code with friends. You need at least 2 players to start (3 max).' : `${n} of 3 players ready. Pick a flying ground above, then start.`)
+      ? (n < 2 ? 'Share the code with friends. You need at least 2 players to start (3 max).'
+        : here < 2 ? 'Your friend is away from the game. They can rejoin with the same code, or you can wait.'
+        : `${here} of 3 players ready. Pick a flying ground above, then start.${here < n ? ' Anyone still away will be left out.' : ''}`)
       : `Waiting for the host to start (${n} of 3 players). You can still pick your kite from the shop.`;
     document.body.classList.toggle('lobbyGuest', inRoom && !isHost());
   }
@@ -212,7 +296,7 @@
     player.hp = mine.hp;
     peers.length = 0;
     m.players.forEach((p, i) => {
-      if (p.id === myId) return;
+      if (p.id === myId || p.alive === false) return;
       const nx = (i + 1) / (total + 1);
       peers.push({ id: p.id, name: p.name, n: p.skin, hp: p.hp, remote: true, anchor: .5, spool: 50, line: 50,
         buf: [{ t: performance.now(), x: nx, y: .72, l: 50 }], gap: 70, dev: 15, lastAt: 0, delay: 140, vx: 0, vy: 0, x: W * nx, y: H * .72, phase: Math.random() * 6.28 });
@@ -220,6 +304,26 @@
     el('pause').textContent = 'Menu';
     sentPos = { x: -1, y: -1, l: -1 };
     posAt = 0;
+  }
+
+  // We just got back into a match that is still running (the connection dropped, or the page was reloaded).
+  function resumeMatch(m) {
+    const mine = m.players.find((p) => p.id === myId);
+    if (!mine) return;
+    if (state === 'play' || state === 'result') {
+      // page survived: just catch up on what we missed
+      for (const q of m.players) {
+        if (q.id === myId) continue;
+        const i = peers.findIndex((p) => p.id === q.id);
+        if (q.alive === false) { if (i >= 0) peers.splice(i, 1); } else if (i >= 0) peers[i].hp = q.hp;
+      }
+      if (state === 'play' && mine.alive === false) { player.hp = 0; eliminated(); }
+      else if (state === 'play') player.hp = Math.min(player.hp, mine.hp);
+      return;
+    }
+    // page was reloaded: rebuild the match view from the room's state
+    beginMatch(m);
+    if (mine.alive === false) { player.hp = 0; eliminated(); }
   }
 
   function aliveCount() { return peers.length + (player && player.hp > 0 ? 1 : 0); }
@@ -292,9 +396,14 @@
     el('friends').scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
+  // The player chose to leave: tell the room so the seat is freed right away (a dropped connection keeps it).
   function leave() {
-    if (ws) { const old = ws; ws = null; old.close(); }
+    send({ t: 'leave' });
+    clearTimeout(retryTimer);
     clearInterval(pingTimer);
+    if (ws) { const old = ws; ws = null; old.close(); }
+    rememberRoom('');
+    setNet('');
     inRoom = false; players = []; myId = hostId = null; over = false;
     resetToSetup();
     renderLobby();
@@ -303,13 +412,15 @@
     history.replaceState(null, '', location.pathname);
   }
 
-  function dropped() {
+  // We could not get back into the room.
+  function dropped(msg) {
     const midMatch = state === 'play' || state === 'result';
     inRoom = false; players = []; myId = hostId = null;
     resetToSetup();
     renderLobby();
-    const msg = 'The connection to the lobby was lost.';
-    if (midMatch) dialog('Disconnected', msg + ' Join again with the same code if the lobby is still open.', [['OK', () => {}]]);
+    setBusy(false);
+    history.replaceState(null, '', location.pathname);
+    if (midMatch) dialog('Disconnected', msg, [['OK', () => {}]]);
     else note(msg, true);
   }
 
@@ -399,10 +510,11 @@
     },
   });
 
-  // Opening an invite link (?room=CODE) joins straight away.
-  const invited = new URLSearchParams(location.search).get('room');
+  // Opening an invite link (?room=CODE) joins straight away. So does coming back to a tab that was in a lobby
+  // (the browser may have reloaded the page while it was in the background): our private token gets us our seat back.
+  const invited = (new URLSearchParams(location.search).get('room') || savedRoom()).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
   if (invited) {
-    el('joinCode').value = invited.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+    el('joinCode').value = invited;
     joinLobby(invited);
   }
 })();

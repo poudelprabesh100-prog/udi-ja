@@ -199,3 +199,18 @@ button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .inLobby .options{grid-template-columns:1fr}
 .inLobby #grounds{margin-bottom:6px}
 #friendsInfo{margin:0 0 14px;color:#e1c7bb;font-size:14px;line-height:1.5}
+
+/* Reconnecting banner while flying; away tag in the lobby list */
+#netStatus{position:absolute;z-index:6;top:62px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:8px 14px;border-radius:999px;background:#7a2a3de6;border:1px solid #ffb3c0;color:#fff;font-size:13px;font-weight:700;text-align:center;pointer-events:none}
+#roster em.away{background:#6b6477;color:#fff}
+
+/* Rotate-your-phone hint (replaces the wall of text) */
+.rotateHint{display:block;width:150px;height:110px;margin:6px auto 4px}
+.rotateHint .phone{transform-box:fill-box;transform-origin:center;animation:rotatePhone 2.8s ease-in-out infinite}
+.rotateHint .arrow{animation:rotateArrow 2.8s ease-in-out infinite}
+@keyframes rotatePhone{0%,22%{transform:rotate(0)}52%,82%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+@keyframes rotateArrow{0%,15%{opacity:0}30%,55%{opacity:1}70%,100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.rotateHint .phone{animation:none;transform:rotate(-90deg)}.rotateHint .arrow{animation:none;opacity:1}}
+.rotateCaption{display:block;text-align:center;font-weight:700;color:#ffd36c;letter-spacing:.3px}
+#modal:has(.rotateHint){text-align:center}
+#modal:has(.rotateHint) #actions{justify-content:center}

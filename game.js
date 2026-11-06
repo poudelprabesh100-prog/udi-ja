@@ -48,7 +48,9 @@ $('pause').onclick=()=>pause(true);
 let hintOpen=false;const landscape=matchMedia('(orientation:landscape)');
 function launch(){let seen=false;try{seen=sessionStorage.tiharLandscapeHint==='1'}catch{}
  if(matchMedia('(pointer:coarse)').matches&&!landscape.matches&&!seen){try{sessionStorage.tiharLandscapeHint='1'}catch{}hintOpen=true;
-  dialog('Rotate for a better view','Turn your phone sideways to fly in landscape. You get a wider sky and the controls cover less of it. Rotate now and the game starts on its own.',[['Play in portrait',start],['Back',()=>{}]]);return}
+  // One animated picture instead of a paragraph: a phone turning sideways. Rotating starts the game by itself.
+  dialog('Rotate your phone','',[['Play in portrait',start],['Back',()=>{}]]);
+  $('mb').innerHTML='<svg class="rotateHint" viewBox="0 0 150 110" aria-hidden="true"><g class="phone"><rect x="55" y="17" width="40" height="76" rx="8" fill="#2f1c2b" stroke="#ffd36c" stroke-width="4"/><rect x="62" y="27" width="26" height="48" rx="3" fill="#ffc35f" opacity=".22"/><path d="M75 35l9 11-9 14-9-14z" fill="#ffd36c"/><circle cx="75" cy="84" r="2.5" fill="#ffd36c"/></g><g class="arrow"><path d="M113 28a44 44 0 0 1 0 54" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M104 77l10 6 2-12" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g></svg><span class="rotateCaption">Landscape plays best</span>';return}
  start()}
 $('modal').addEventListener('close',()=>hintOpen=false);
 landscape.addEventListener('change',e=>{if(e.matches&&hintOpen)start()});

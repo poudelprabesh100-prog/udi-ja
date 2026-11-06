@@ -17,16 +17,19 @@ function select(group,el){for(const b of group.children){b.classList.toggle('sel
 for(const b of $('modes').children)b.onclick=()=>{mode=b.dataset.mode;select($('modes'),b)};
 [...$('levels').children].forEach((b,i)=>b.onclick=()=>{difficulty=i;select($('levels'),b)});
 palettes.forEach(([name],i)=>{let b=document.createElement('button');b.title=name;b.setAttribute('aria-label',name+' kite');b.innerHTML=kiteSVG(i)+'<small>'+name+' · '+(price[i]||'Free')+'</small>';b.removeAttribute('title');b.innerHTML+='<span class="kite-tip" role="tooltip" id="kite-tip-'+i+'">Speed '+speed[i]+' · Durability '+health[i]+' hits</span>';b.setAttribute('aria-describedby','kite-tip-'+i);$('skins').append(b);b.onclick=()=>{if(!owned.includes(i)){dialog(name+' kite',price[i]+' coins · Wallet '+coins+' coins\nSpeed '+speed[i]+' · Durability '+health[i],coins>=price[i]?[['Buy and equip',()=>{coins-=price[i];owned.push(i);save();b.click()}],['Back',()=>{}]]:[['Back',()=>{}]]);return}skin=i;$('kn').textContent=name+' · '+coins+' coins';select($('skins'),b)}});$('skins').firstElementChild.click();
-function tone(f,d=.13,type='sine',vol=.08){if(!sound||!audio)return;let o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+d)}
+// Sound effects always play; the Music button only controls the background track.
+function ensureAudio(){const C=window.AudioContext||window.webkitAudioContext;if(!C)return;try{audio??=new C();if(audio.state==='suspended')audio.resume().catch(()=>{})}catch{}}
+for(const n of ['pointerdown','touchend','click','keydown'])addEventListener(n,ensureAudio,{passive:true});
+function tone(f,d=.13,type='sine',vol=.08,to){if(!audio)ensureAudio();if(!audio)return;const t=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+d);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(audio.destination);o.start(t);o.stop(t+d)}
 const music=new Audio(),webmTrack='tihar-dhun.webm',mp3Track='Tihar Dhun- Deusi Bhailo.mp3',ua=navigator.userAgent;
 // WebKit (every iPhone/iPad browser, desktop Safari) reports WebM/Opus support but often plays nothing, so it gets the MP3.
 const webkitOnly=/iPhone|iPad|iPod/.test(ua)||(/Safari/.test(ua)&&!/Chrome|Chromium|Android|Edg|OPR|Firefox/.test(ua))||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 let usingMp3=webkitOnly||music.canPlayType('audio/webm; codecs=opus')!=='probably';
-music.loop=true;music.volume=.38;music.preload='auto';music.src=usingMp3?mp3Track:webmTrack;
+music.loop=true;music.volume=.14;music.preload='auto';music.src=usingMp3?mp3Track:webmTrack;
 function playMusic(){const p=music.play();if(p)p.catch(err=>{if(err&&err.name==='NotAllowedError')return;fallbackMusic()})}
 function fallbackMusic(){if(usingMp3)return;usingMp3=true;music.src=mp3Track;music.load();if(sound)music.play().catch(()=>{})}
 music.addEventListener('error',fallbackMusic);
-$('sound').onclick=()=>{sound=!sound;if(sound){playMusic();const Context=window.AudioContext||window.webkitAudioContext;if(Context){audio??=new Context();audio.resume().catch(()=>{})}}else music.pause();$('sound').querySelector('span').textContent='Sound '+(sound?'on':'off');$('sound').setAttribute('aria-pressed',String(sound))};
+$('sound').onclick=()=>{sound=!sound;if(sound)playMusic();else music.pause();$('sound').querySelector('span').textContent='Music '+(sound?'on':'off');$('sound').setAttribute('aria-pressed',String(sound))};
 const canvas=$('arena'),ctx=canvas.getContext('2d'),keys=new Set();let W,H,player,bots=[],particles=[],time,points,cuts,elapsed,prev=0,cool=0,flash=0,jx=0,jy=0,target=null,fire=0,recap='',victory=false;
 function size(){W=canvas.clientWidth;H=canvas.clientHeight;let d=Math.min(devicePixelRatio||1,2);canvas.width=W*d;canvas.height=H*d;ctx.setTransform(d,0,0,d,0,0)}
 const bounty=[100,150,225,325];
@@ -78,8 +81,8 @@ function hurt(){const last=player.hp===1;[[520,0],[340,130],...(last?[[520,260],
  try{navigator.vibrate?.(last?[90,50,90,50,160]:[110,60,110])}catch{}}
 function finish(win){state='result';victory=win;fire=0;earned=cuts*12+Math.floor(elapsed/10)+(win?35+10*difficulty+player.hp*3:0);coins+=earned;save();$("kn").textContent=palettes[skin][0]+' · '+coins+' coins';recap='+'+earned+' coins · Wallet '+coins+' coins\n'+cuts+' kite'+(cuts===1?'':'s')+' cut · '+points+' points';if(win){for(let i=0;i<5;i++)burst(Math.random()*W,Math.random()*H*.7,palettes[i%4][1],40);tone(880,.4)}setTimeout(()=>{if(state==='result')dialog(win?'Congratulations, kite champion!':'Your line was cut',recap,[['Fly again',start],['Flight setup',lobby]])},win?1850:450)}
 let dash=0,guard=0,dashWait=0,guardWait=0,lastDX=1,lastDY=0;
-function maneuver(type){if(state!=='play')return;if(type==='dash'&&dashWait<=0){dash=.23;dashWait=2.8}else if(type==='guard'&&guardWait<=0){guard=.65;guardWait=3.6}}
-let range=62;function reel(v){if(state==='play')line=clamp(line+v,0,100)}
+function maneuver(type){if(state!=='play')return;if(type==='dash'&&dashWait<=0){dash=.23;dashWait=2.8;tone(260,.22,'sawtooth',.05,1100)}else if(type==='guard'&&guardWait<=0){guard=.65;guardWait=3.6;tone(620,.2,'triangle',.08,330);setTimeout(()=>tone(880,.14,'triangle',.05),90)}}
+let range=62;let lastTick=0;function reel(v){if(state!=='play')return;const before=line;line=clamp(line+v,0,100);if(line!==before){const now=performance.now();if(now-lastTick>85){lastTick=now;tone(300+line*5,.05,'square',.03)}}}
 function tether(k){
  const ax=W*(k===player?.5:k.anchor),bend=(k===player?line:k.spool)*.25;
  return Array.from({length:17},(_,i)=>{const t=i/16;return {x:k.x+(ax-k.x)*t+2*t*(1-t)*bend,y:k.y+(H-k.y)*t}})
@@ -96,7 +99,7 @@ function damage(b,hit,credit){
  bots.splice(bots.indexOf(b),1);if(credit){cuts++;points+=bounty[b.n]}
  if(mode==='rush')bots.push(bot());else if(!bots.length)finish(true)
 }
-function cut(){if(state!=='play'||cool>0||guard>0||dash>0)return;cool=.52;flash=.18;const hit=aim();if(hit){damage(hit.b,hit,true);tone(750)}else tone(260,.06)}
+function cut(){if(state!=='play'||cool>0||guard>0||dash>0)return;cool=.52;flash=.18;const hit=aim();if(hit){damage(hit.b,hit,true);tone(1300,.1,'square',.05,520);tone(750)}else tone(320,.09,'sawtooth',.03,180)}
 window.addEventListener('keydown',e=>{if(state!=='play')return;let k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' ','w','s','a','d','q','e','shift','f','escape'].includes(k)){e.preventDefault();keys.add(k);if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k))target=null;if(k===' ')cut();if(!e.repeat&&k==='shift')maneuver('dash');if(!e.repeat&&k==='f')maneuver('guard');if(k==='escape')pause()}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',pause);document.addEventListener('visibilitychange',()=>{if(document.hidden)pause()});
 canvas.onpointermove=e=>{if(state==='play'&&e.pointerType==='mouse'){let r=canvas.getBoundingClientRect();target={x:e.clientX-r.left,y:e.clientY-r.top}}};canvas.onpointerdown=e=>{if(e.pointerType==='mouse')cut()};$('cut').onpointerdown=cut;
 let stick=$('stick');function steer(e){let r=stick.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2,m=Math.max(22,Math.hypot(x,y));jx=x/m;jy=y/m;stick.firstElementChild.style.transform='translate('+jx*22+'px,'+jy*22+'px)'}stick.onpointerdown=e=>{stick.setPointerCapture(e.pointerId);steer(e)};stick.onpointermove=e=>{if(stick.hasPointerCapture(e.pointerId))steer(e)};stick.onlostpointercapture=()=>{jx=jy=0;stick.firstElementChild.style.transform=''};

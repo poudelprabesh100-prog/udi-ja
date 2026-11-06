@@ -125,6 +125,37 @@
 </i>Festival Square</button>
 </div>
 <button id="launch">Launch kite</button>
+<div id="friends">
+<div class="title">
+<h2>Play with friends</h2>
+<hr>
+</div>
+<label id="nameRow">Your name <input id="pname" maxlength="12" placeholder="Pilot" autocomplete="off" autocapitalize="words" spellcheck="false"></label>
+<div id="friendsHome">
+<div class="friendRow">
+<button id="createLobby">Create lobby</button>
+<span>or join</span>
+<input id="joinCode" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Lobby code">
+<button id="joinLobby">Join</button>
+</div>
+</div>
+<div id="lobbyRoom" hidden>
+<div class="codeBox">
+<div>
+<small>LOBBY CODE</small>
+<strong id="lobbyCode"></strong>
+</div>
+<button id="shareLobby">Share invite</button>
+</div>
+<ul id="roster"></ul>
+<p id="lobbyHint"></p>
+<div class="friendRow">
+<button id="startMatch">Start match</button>
+<button id="leaveLobby">Leave lobby</button>
+</div>
+</div>
+<p id="mpNote" role="status"></p>
+</div>
 </section>
 </main>
 <dialog id="modal">
@@ -136,6 +167,8 @@
 </div>
 </dialog>
 <script src="game.js">
+</script>
+<script src="multiplayer.js">
 </script>
 </body>
 </html>

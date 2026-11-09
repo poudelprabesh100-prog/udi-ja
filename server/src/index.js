@@ -8,7 +8,7 @@ import { DurableObject } from 'cloudflare:workers';
 
 const MAX_PLAYERS = 3;
 const HEALTH = [3, 4, 4, 5];
-const GROUNDS = ['valley', 'night', 'lake', 'fields', 'square'];
+const GROUNDS = ['valley', 'night', 'lake', 'fields', 'square', 'bhaktapur', 'dawn', 'roof'];
 const IDLE_LOBBY_MS = 15 * 60 * 1000; // close connections of a lobby nobody has touched
 const GRACE_LOBBY_MS = 10 * 60 * 1000; // how long an absent player keeps their seat in a lobby
 const GRACE_PLAY_MS = 25 * 1000; // ...and during a match

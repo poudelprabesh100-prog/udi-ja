@@ -34,21 +34,22 @@ for(const b of $('modes').children)b.onclick=()=>{mode=b.dataset.mode;select($('
 showBest();
 palettes.forEach(([name],i)=>{let b=document.createElement('button');b.title=name;b.setAttribute('aria-label',name+' kite');b.innerHTML=kiteSVG(i)+'<small>'+name+' · '+(price[i]||'Free')+'</small>';b.removeAttribute('title');b.innerHTML+='<span class="kite-tip" role="tooltip" id="kite-tip-'+i+'">Speed '+speed[i]+' · Durability '+health[i]+' hits</span>';b.setAttribute('aria-describedby','kite-tip-'+i);$('skins').append(b);b.onclick=()=>{if(!owned.includes(i)){dialog(name+' kite',price[i]+' coins · Wallet '+coins+' coins\nSpeed '+speed[i]+' · Durability '+health[i],coins>=price[i]?[['Buy and equip',()=>{coins-=price[i];owned.push(i);save();b.click()}],['Back',()=>{}]]:[['Back',()=>{}]]);return}skin=i;MP.skin?.(i);$('kn').textContent=name+' · '+coins+' coins';select($('skins'),b)}});$('skins').firstElementChild.click();
 // ---- Workshop: cooldown upgrades, one-use flight items, trails and cut effects
-let trailAcc=0;const trailBits=[],rings=[],ribbon=[],petalCols=['#ff9a1f','#ffbf3c','#ff7a45','#ff6a8a'];
+const trailBits=[],rings=[],ribbon=[],petalCols=['#ff9a1f','#ffbf3c','#ff7a45','#ff6a8a'];
 function useItems(){shieldOn=false;manjaT=windT=0;if(mode==='versus')return;let used=false;
  for(const it of items)if(armed[it.k]&&stock[it.k]>0){stock[it.k]--;used=true;if(!stock[it.k])armed[it.k]=false;if(it.k==='shield')shieldOn=true;else if(it.k==='manja')manjaT=25;else windT=30}
  if(used){save();renderShop()}}
-const emit=o=>{if(trailBits.length<420)trailBits.push(o)};
+const emit=o=>{if(trailBits.length<260)trailBits.push(o)};
 function drawFx(dt){
  const ribbonOn=state==='play'&&fx.trail==='ribbon'&&player.hp>0;
- if(state==='play'&&player.hp>0){const x=player.x-6,y=player.y+38;trailAcc+=dt*(fx.trail==='petals'?55:fx.trail==='embers'?110:0);
-  for(;trailAcc>=1;trailAcc--){if(fx.trail==='petals')emit({k:'p',x:x+(Math.random()-.5)*10,y,vx:(Math.random()-.5)*50,vy:14+Math.random()*34,t:2,m:2,a:Math.random()*6.28,va:(Math.random()-.5)*8,c:petalCols[Math.floor(Math.random()*4)]});else emit({k:'e',x:x+(Math.random()-.5)*10,y,vx:(Math.random()-.5)*34,vy:-14-Math.random()*44,t:1.3,m:1.3})}
-  if(ribbonOn){const l=ribbon[ribbon.length-1];if(!l||Math.hypot(l.x-x,l.y-y)>1.5){ribbon.push({x,y});if(ribbon.length>44)ribbon.shift()}else if(ribbon.length>1)ribbon.shift()}}
+ if(state==='play'&&player.hp>0){const x=player.x-5,y=player.y+24;
+  if(fx.trail==='petals'&&Math.random()<dt*20)emit({k:'p',x,y,vx:(Math.random()-.5)*30,vy:10+Math.random()*26,t:1.5,m:1.5,a:Math.random()*6.28,va:(Math.random()-.5)*7,c:petalCols[Math.floor(Math.random()*4)]});
+  if(fx.trail==='embers'&&Math.random()<dt*45)emit({k:'e',x:x+(Math.random()-.5)*8,y,vx:(Math.random()-.5)*22,vy:-8-Math.random()*30,t:1,m:1});
+  if(ribbonOn){const l=ribbon[ribbon.length-1];if(!l||Math.hypot(l.x-x,l.y-y)>2){ribbon.push({x,y});if(ribbon.length>28)ribbon.shift()}else if(ribbon.length>1)ribbon.shift()}}
  if(!ribbonOn&&ribbon.length)ribbon.shift();
- if(ribbon.length>2){ctx.lineCap='round';for(let i=1;i<ribbon.length;i++){const a=ribbon[i-1],c=ribbon[i],k=i/ribbon.length;ctx.strokeStyle='hsla('+((performance.now()/9+i*9)%360)+',95%,64%,'+(.25+k*.75)+')';ctx.lineWidth=2+k*10;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(c.x,c.y);ctx.stroke()}ctx.lineCap='butt';ctx.lineWidth=1}
+ if(ribbon.length>2){ctx.lineCap='round';for(let i=1;i<ribbon.length;i++){const a=ribbon[i-1],c=ribbon[i],k=i/ribbon.length;ctx.strokeStyle='hsla('+((performance.now()/9+i*9)%360)+',95%,64%,'+(k*.85)+')';ctx.lineWidth=1+k*6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(c.x,c.y);ctx.stroke()}ctx.lineCap='butt';ctx.lineWidth=1}
  for(let i=trailBits.length-1;i>=0;i--){const p=trailBits[i];p.t-=dt;if(p.t<=0){trailBits.splice(i,1);continue}p.x+=p.vx*dt;p.y+=p.vy*dt;const a=Math.min(1,p.t/p.m*1.4);
-  if(p.k==='p'){p.a+=p.va*dt;p.vx*=1-1.2*dt;p.vy+=(p.g||0)*dt;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.globalAlpha=a;ctx.fillStyle=p.c;ctx.beginPath();ctx.ellipse(0,0,8.5,4.4,0,0,6.283);ctx.fill();ctx.strokeStyle='#8a3010';ctx.lineWidth=1;ctx.stroke();ctx.restore()}
-  else{ctx.globalCompositeOperation='lighter';ctx.fillStyle='#ffb23c';ctx.globalAlpha=a*.4;ctx.beginPath();ctx.arc(p.x,p.y,12,0,6.283);ctx.fill();ctx.globalAlpha=a;ctx.fillStyle='#fff0a8';ctx.beginPath();ctx.arc(p.x,p.y,3.6,0,6.283);ctx.fill();ctx.globalCompositeOperation='source-over'}}
+  if(p.k==='p'){p.a+=p.va*dt;p.vx*=1-1.2*dt;p.vy+=(p.g||0)*dt;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.globalAlpha=a;ctx.fillStyle=p.c;ctx.beginPath();ctx.ellipse(0,0,5,2.6,0,0,6.283);ctx.fill();ctx.restore()}
+  else{ctx.globalCompositeOperation='lighter';ctx.fillStyle='#ffb23c';ctx.globalAlpha=a*.28;ctx.beginPath();ctx.arc(p.x,p.y,7,0,6.283);ctx.fill();ctx.globalAlpha=a;ctx.fillStyle='#ffe38a';ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,6.283);ctx.fill();ctx.globalCompositeOperation='source-over'}}
  for(let i=rings.length-1;i>=0;i--){const g=rings[i];g.t-=dt;if(g.t<=0){rings.splice(i,1);continue}const k=1-g.t/g.m;ctx.globalAlpha=(1-k)*.9;ctx.strokeStyle=g.c;ctx.lineWidth=1+4*(1-k);ctx.beginPath();ctx.arc(g.x,g.y,10+k*g.r,0,6.283);ctx.stroke()}
  ctx.globalAlpha=1;ctx.lineWidth=1}
 function cutEffect(x,y){const k=fx.cut;

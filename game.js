@@ -6,13 +6,13 @@ const price=[0,150,340,675],speed=[215,248,278,305],health=[3,4,4,5];
 const BASE_CD={dash:4.2,guard:5.4},CD_STEP=.15;
 const upgrades=[{k:'dash',name:'Swift Dodge',desc:'Dodge recharges 15% faster per level.',cost:[120,260,480]},{k:'guard',name:'Steady Brace',desc:'Brace recharges 15% faster per level.',cost:[120,260,480]}];
 const items=[{k:'shield',name:'Diyo Shield',price:70,desc:'Blocks the first hit you take.'},{k:'manja',name:'Sharp Manja',price:90,desc:'Cutting reach is 25% longer for the first 25 seconds.'},{k:'wind',name:'Swift Wind',price:80,desc:'Dodge and Brace recharge twice as fast for 30 seconds.'}];
-const trails=[{k:'none',name:'No trail',price:0},{k:'petals',name:'Marigold Petals',price:140},{k:'embers',name:'Diya Embers',price:260},{k:'ribbon',name:'Festival Ribbon',price:420}];
+const trails=[{k:'none',name:'No trail',price:0},{k:'petals',name:'Marigold Petals',price:140},{k:'embers',name:'Diya Embers',price:260}];
 const cutFx=[{k:'none',name:'Classic',price:0},{k:'petals',name:'Marigold Shower',price:160},{k:'fireworks',name:'Fireworks',price:240},{k:'diya',name:'Diya Glow',price:380}];
 let coins=0,owned=[0],line=50,earned=0,up={dash:0,guard:0},stock={shield:0,manja:0,wind:0},armed={shield:false,manja:false,wind:false},fxOwned=['none'],fx={trail:'none',cut:'none'},groundsOwned=[];
 try{const saved=JSON.parse(localStorage.tiharHangar||'{}');coins=Math.max(0,Number(saved.coins)||0);owned=[...new Set([0,...(saved.owned||[]).filter(i=>[1,2,3].includes(i))])];
  for(const u of upgrades)up[u.k]=Math.min(3,Math.max(0,Math.floor(Number(saved.up?.[u.k]))||0));
  for(const it of items){stock[it.k]=Math.min(99,Math.max(0,Math.floor(Number(saved.stock?.[it.k]))||0));armed[it.k]=!!saved.armed?.[it.k]&&stock[it.k]>0}
- fxOwned=[...new Set(['none',...(saved.fxOwned||[]).filter(k=>typeof k==='string'&&(k.startsWith('t:')||k.startsWith('c:')))])];
+ fxOwned=[...new Set(['none',...(saved.fxOwned||[]).filter(k=>typeof k==='string'&&(k.startsWith('t:')||k.startsWith('c:'))&&[...trails,...cutFx].some(x=>x.k===k.slice(2)))])];
  fx.trail=fxOwned.includes('t:'+saved.fx?.trail)?saved.fx.trail:'none';fx.cut=fxOwned.includes('c:'+saved.fx?.cut)?saved.fx.cut:'none';
  groundsOwned=(saved.grounds||[]).filter(k=>typeof k==='string')}catch{}
 function save(){try{localStorage.tiharHangar=JSON.stringify({coins,owned,up,stock,armed,fxOwned,fx,grounds:groundsOwned})}catch{}}
@@ -34,19 +34,15 @@ for(const b of $('modes').children)b.onclick=()=>{mode=b.dataset.mode;select($('
 showBest();
 palettes.forEach(([name],i)=>{let b=document.createElement('button');b.title=name;b.setAttribute('aria-label',name+' kite');b.innerHTML=kiteSVG(i)+'<small>'+name+' · '+(price[i]||'Free')+'</small>';b.removeAttribute('title');b.innerHTML+='<span class="kite-tip" role="tooltip" id="kite-tip-'+i+'">Speed '+speed[i]+' · Durability '+health[i]+' hits</span>';b.setAttribute('aria-describedby','kite-tip-'+i);$('skins').append(b);b.onclick=()=>{if(!owned.includes(i)){dialog(name+' kite',price[i]+' coins · Wallet '+coins+' coins\nSpeed '+speed[i]+' · Durability '+health[i],coins>=price[i]?[['Buy and equip',()=>{coins-=price[i];owned.push(i);save();b.click()}],['Back',()=>{}]]:[['Back',()=>{}]]);return}skin=i;MP.skin?.(i);$('kn').textContent=name+' · '+coins+' coins';select($('skins'),b)}});$('skins').firstElementChild.click();
 // ---- Workshop: cooldown upgrades, one-use flight items, trails and cut effects
-const trailBits=[],rings=[],ribbon=[],petalCols=['#ff9a1f','#ffbf3c','#ff7a45','#ff6a8a'];
+const trailBits=[],rings=[],petalCols=['#ff9a1f','#ffbf3c','#ff7a45','#ff6a8a'];
 function useItems(){shieldOn=false;manjaT=windT=0;if(mode==='versus')return;let used=false;
  for(const it of items)if(armed[it.k]&&stock[it.k]>0){stock[it.k]--;used=true;if(!stock[it.k])armed[it.k]=false;if(it.k==='shield')shieldOn=true;else if(it.k==='manja')manjaT=25;else windT=30}
  if(used){save();renderShop()}}
 const emit=o=>{if(trailBits.length<260)trailBits.push(o)};
 function drawFx(dt){
- const ribbonOn=state==='play'&&fx.trail==='ribbon'&&player.hp>0;
  if(state==='play'&&player.hp>0){const x=player.x-5,y=player.y+24;
   if(fx.trail==='petals'&&Math.random()<dt*20)emit({k:'p',x,y,vx:(Math.random()-.5)*30,vy:10+Math.random()*26,t:1.5,m:1.5,a:Math.random()*6.28,va:(Math.random()-.5)*7,c:petalCols[Math.floor(Math.random()*4)]});
-  if(fx.trail==='embers'&&Math.random()<dt*45)emit({k:'e',x:x+(Math.random()-.5)*8,y,vx:(Math.random()-.5)*22,vy:-8-Math.random()*30,t:1,m:1});
-  if(ribbonOn){const l=ribbon[ribbon.length-1];if(!l||Math.hypot(l.x-x,l.y-y)>2){ribbon.push({x,y});if(ribbon.length>28)ribbon.shift()}else if(ribbon.length>1)ribbon.shift()}}
- if(!ribbonOn&&ribbon.length)ribbon.shift();
- if(ribbon.length>2){ctx.lineCap='round';for(let i=1;i<ribbon.length;i++){const a=ribbon[i-1],c=ribbon[i],k=i/ribbon.length;ctx.strokeStyle='hsla('+((performance.now()/9+i*9)%360)+',95%,64%,'+(k*.85)+')';ctx.lineWidth=1+k*6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(c.x,c.y);ctx.stroke()}ctx.lineCap='butt';ctx.lineWidth=1}
+  if(fx.trail==='embers'&&Math.random()<dt*45)emit({k:'e',x:x+(Math.random()-.5)*8,y,vx:(Math.random()-.5)*22,vy:-8-Math.random()*30,t:1,m:1});}
  for(let i=trailBits.length-1;i>=0;i--){const p=trailBits[i];p.t-=dt;if(p.t<=0){trailBits.splice(i,1);continue}p.x+=p.vx*dt;p.y+=p.vy*dt;const a=Math.min(1,p.t/p.m*1.4);
   if(p.k==='p'){p.a+=p.va*dt;p.vx*=1-1.2*dt;p.vy+=(p.g||0)*dt;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.globalAlpha=a;ctx.fillStyle=p.c;ctx.beginPath();ctx.ellipse(0,0,5,2.6,0,0,6.283);ctx.fill();ctx.restore()}
   else{ctx.globalCompositeOperation='lighter';ctx.fillStyle='#ffb23c';ctx.globalAlpha=a*.28;ctx.beginPath();ctx.arc(p.x,p.y,7,0,6.283);ctx.fill();ctx.globalAlpha=a;ctx.fillStyle='#ffe38a';ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,6.283);ctx.fill();ctx.globalCompositeOperation='source-over'}}
@@ -96,7 +92,7 @@ function bot(i){
  if(!bag.length){bag=[...rosters[difficulty]];for(let j=bag.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[bag[j],bag[k]]=[bag[k],bag[j]]}}
  const n=bag.pop(),anchor=.04+.92*Math.random(),x=clamp(W*anchor+(Math.random()-.5)*W*.35,22,W-22),y=H*(.16+.57*Math.random());
  return {n,hp:health[n],anchor,x,y,spool:clamp((Math.hypot(W*anchor-x,H-y)-100)/(H+W*.4)*100,0,100),course:0,dive:Math.random()<.5,phase:Math.random()*6.28,cd:2+Math.random()*3,warning:0}}
-function start(){if($('modal').open)$('modal').close();document.body.classList.add('playing');$('hud').hidden=false;state='play';size();player={x:W/2,y:H*.72,n:skin,hp:health[skin]};bag=[];peers.length=0;bots=Array.from({length:mode==='versus'?0:mode==='rush'?4:10},(_,i)=>bot(i));dash=guard=dashWait=guardWait=0;useItems();trailBits.length=rings.length=ribbon.length=0;line=50;time=90;elapsed=points=cuts=cool=flash=0;particles=[];target=null;keys.clear();jx=jy=0;window.scrollTo(0,0);tone(660)}
+function start(){if($('modal').open)$('modal').close();document.body.classList.add('playing');$('hud').hidden=false;state='play';size();player={x:W/2,y:H*.72,n:skin,hp:health[skin]};bag=[];peers.length=0;bots=Array.from({length:mode==='versus'?0:mode==='rush'?4:10},(_,i)=>bot(i));dash=guard=dashWait=guardWait=0;useItems();trailBits.length=rings.length=0;line=50;time=90;elapsed=points=cuts=cool=flash=0;particles=[];target=null;keys.clear();jx=jy=0;window.scrollTo(0,0);tone(660)}
 function lobby(){state='setup';peers.length=0;document.body.classList.remove('playing');$('hud').hidden=true;ctx.clearRect(0,0,W,H)}
 function dialog(title,body,buttons){if($('modal').open)$('modal').close();$('mt').textContent=title;$('mb').textContent=body;$('actions').replaceChildren();for(const [s,fn] of buttons){let b=document.createElement('button');b.textContent=s;b.onclick=()=>{$('modal').close();fn()};$('actions').append(b)}$('modal').showModal()}
 function pause(user){if(state!=='play')return;if(mode==='versus'){keys.clear();target=null;jx=jy=0;if(user===true)MP.menu();return}state='paused';keys.clear();target=null;jx=jy=0;dialog('Flight paused','Resume when you’re ready.',[['Resume',()=>state='play'],['Flight setup',lobby]])}

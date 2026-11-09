@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const MP={},peers=[];
 const palettes=[['Marigold','#ffcb4b','#ed6540'],['Rose','#fa6484','#a42259'],['Peacock','#52ddcf','#087d92'],['Orchid','#c796fd','#6744b4']];
-const price=[0,75,175,325],speed=[215,248,278,305],health=[3,4,4,5];
+const price=[0,150,340,675],speed=[215,248,278,305],health=[3,4,4,5];
 let coins=0,owned=[0],line=50,earned=0;
 try{const saved=JSON.parse(localStorage.tiharHangar||'{}');coins=Math.max(0,Number(saved.coins)||0);owned=[...new Set([0,...(saved.owned||[]).filter(i=>[1,2,3].includes(i))])]}catch{}
 function save(){try{localStorage.tiharHangar=JSON.stringify({coins,owned})}catch{}}
@@ -86,7 +86,7 @@ function burst(x,y,color,count=20){for(let i=0;i<count;i++){let a=Math.random()*
 function hurt(){const last=player.hp===1;[[520,0],[340,130],...(last?[[520,260],[340,390]]:[[240,260]])].forEach(([f,t])=>setTimeout(()=>tone(f,.16,'square',.07),t));
  const sky=$('sky');sky.classList.remove('hit');void sky.offsetWidth;sky.classList.add('hit');
  try{navigator.vibrate?.(last?[90,50,90,50,160]:[110,60,110])}catch{}}
-function finish(win){state='result';victory=win;fire=0;earned=cuts*12+Math.floor(elapsed/10)+(win?35+10*difficulty+player.hp*3:0);coins+=earned;save();$("kn").textContent=palettes[skin][0]+' · '+coins+' coins';recap='+'+earned+' coins · Wallet '+coins+' coins\n'+cuts+' kite'+(cuts===1?'':'s')+' cut · '+points+' points';record=false;if(mode==='rush'){if(points>rushBest[difficulty]){rushBest[difficulty]=points;record=true;try{localStorage.tiharRush=JSON.stringify(rushBest)}catch{}}recap+='\nScore '+points+' · High score '+rushBest[difficulty]+(record?'  ★ New record!':'');showBest()}if(record)tone(1046,.5);if(win||record){for(let i=0;i<5;i++)burst(Math.random()*W,Math.random()*H*.7,palettes[i%4][1],40);tone(880,.4)}setTimeout(()=>{if(state==='result')dialog(record?'New high score!':win?'Congratulations, kite champion!':'Your line was cut',recap,[['Fly again',start],['Flight setup',lobby]])},win?1850:450)}
+function finish(win){state='result';victory=win;fire=0;earned=cuts*7+Math.floor(elapsed/15)+(win?15+5*difficulty+player.hp*2:0);coins+=earned;save();$("kn").textContent=palettes[skin][0]+' · '+coins+' coins';recap='+'+earned+' coins · Wallet '+coins+' coins\n'+cuts+' kite'+(cuts===1?'':'s')+' cut · '+points+' points';record=false;if(mode==='rush'){if(points>rushBest[difficulty]){rushBest[difficulty]=points;record=true;try{localStorage.tiharRush=JSON.stringify(rushBest)}catch{}}recap+='\nScore '+points+' · High score '+rushBest[difficulty]+(record?'  ★ New record!':'');showBest()}if(record)tone(1046,.5);if(win||record){for(let i=0;i<5;i++)burst(Math.random()*W,Math.random()*H*.7,palettes[i%4][1],40);tone(880,.4)}setTimeout(()=>{if(state==='result')dialog(record?'New high score!':win?'Congratulations, kite champion!':'Your line was cut',recap,[['Fly again',start],['Flight setup',lobby]])},win?1850:450)}
 let dash=0,guard=0,dashWait=0,guardWait=0,lastDX=1,lastDY=0;
 function maneuver(type){if(state!=='play')return;if(type==='dash'&&dashWait<=0){dash=.23;dashWait=2.8;tone(260,.22,'sawtooth',.05,1100)}else if(type==='guard'&&guardWait<=0){guard=.65;guardWait=3.6;tone(620,.2,'triangle',.08,330);setTimeout(()=>tone(880,.14,'triangle',.05),90)}}
 let range=62;let lastTick=0;function reel(v){if(state!=='play')return;const before=line;line=clamp(line+v,0,100);if(line!==before){const now=performance.now();if(now-lastTick>85){lastTick=now;tone(300+line*5,.05,'square',.03)}}}
